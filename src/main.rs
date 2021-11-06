@@ -29,7 +29,7 @@ fn create_key_pair(seed: &[u8]) -> (SecretKey, PublicKey) {
     let secret_key = match SecretKey::parse(&seed_bytes) {
         Ok(key) => key,
         Err(_) => {
-            println!("Can't create secret key. Congratulation, you probably found an reverse function for SHA256!");
+            println!("Can't create secret key. Congratulation, you probably found a reverse function for SHA256!");
             process::exit(1);
         }
     };
@@ -89,6 +89,10 @@ fn main() {
         _ => show_usage(&args[0]),
     }
     let passphrase = &args[2];
+    if passphrase.len() < 15 {
+        println!("please use at least 15 characters for the passphrase");
+        process::exit(1);
+    }
     let (secret_key, public_key) = create_key_pair(passphrase.as_bytes());
     let bitcoin_address = calculate_bitcoin_address(public_key, compressed);
     println!("Bitcoin Address: {}", bitcoin_address);
