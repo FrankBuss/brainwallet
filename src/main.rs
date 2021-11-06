@@ -4,16 +4,20 @@ use ripemd160::Ripemd160;
 use sha2::{Digest, Sha256};
 use std::{env, process};
 
+macro_rules! hash {
+    ($Hasher:ty, $data:expr) => {{
+        let mut hasher = <$Hasher>::new();
+        hasher.update($data);
+        hasher.finalize().as_slice().try_into().unwrap()
+    }};
+}
+
 fn sha256_hash(data: &[u8]) -> [u8; 32] {
-    let mut hasher = Sha256::new();
-    hasher.update(data);
-    hasher.finalize().as_slice().try_into().unwrap()
+    hash!(Sha256, data)
 }
 
 fn ripemd160(data: &[u8]) -> [u8; 20] {
-    let mut hasher = Ripemd160::new();
-    hasher.update(data);
-    hasher.finalize().as_slice().try_into().unwrap()
+    hash!(Ripemd160, data)
 }
 
 fn create_key_pair(seed: &[u8]) -> (SecretKey, PublicKey) {
@@ -30,8 +34,10 @@ fn calculate_bitcoin_address(public_key: PublicKey, compressed: bool) -> String 
         public_key.serialize().to_vec()
     };
     let hashed = ripemd160(&sha256_hash(&public_key_serialized));
-    const BITCOIN_PUBLIC_KEY_MAIN_NETWORK: u8 = 0x00; // 0x6f for testnet
-    let mut bytes = [&[BITCOIN_PUBLIC_KEY_MAIN_NETWORK], hashed.as_ref()].concat();
+    const PUBLIC_KEY_MAIN_NETWORK: u8 = 0x00; // 0x6f for testnet
+    let mut bytes: Vec<u8> = Vec::new();
+    bytes.push(PUBLIC_KEY_MAIN_NETWORK);
+    bytes.extend(hashed);
     let double_hash = sha256_hash(&sha256_hash(&bytes).to_vec());
     let checksum = &double_hash[0..4];
     bytes.extend(checksum);
@@ -40,12 +46,10 @@ fn calculate_bitcoin_address(public_key: PublicKey, compressed: bool) -> String 
 
 fn calculate_wallet_import_format(secret_key: SecretKey, compressed: bool) -> String {
     let secret_key_serialized = secret_key.serialize();
-    const BITCOIN_PRIVATE_KEY_MAIN_NETWORK: u8 = 0x80; // 0xef for testnet
-    let mut bytes = [
-        &[BITCOIN_PRIVATE_KEY_MAIN_NETWORK],
-        secret_key_serialized.as_ref(),
-    ]
-    .concat();
+    const PRIVATE_KEY_MAIN_NETWORK: u8 = 0x80; // 0xef for testnet
+    let mut bytes: Vec<u8> = Vec::new();
+    bytes.push(PRIVATE_KEY_MAIN_NETWORK);
+    bytes.extend(secret_key_serialized);
     if compressed {
         bytes.push(1);
     }
