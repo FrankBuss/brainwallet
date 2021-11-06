@@ -100,7 +100,7 @@ mod tests {
     }
 
     #[test]
-    fn test_uncompressed() {
+    fn uncompressed() {
         test(
             "123456789012345",
             false,
@@ -110,7 +110,7 @@ mod tests {
     }
 
     #[test]
-    fn test_compressed() {
+    fn compressed() {
         test(
             "123456789012345",
             true,
