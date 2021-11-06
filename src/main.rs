@@ -1,8 +1,8 @@
-use std::{env, process};
 use base58::*;
-use sha2::{Digest, Sha256};
 use libsecp256k1::*;
 use ripemd160::Ripemd160;
+use sha2::{Digest, Sha256};
+use std::{env, process};
 
 fn sha256_hash(data: &[u8]) -> [u8; 32] {
     let mut hasher = Sha256::new();
@@ -55,8 +55,11 @@ fn calculate_wallet_import_format(secret_key: SecretKey, compressed: bool) -> St
     bytes.to_base58()
 }
 
-fn show_usage(program_name:&str) -> ! {
-    eprintln!("usage: {} [compressed|uncompressed] passphrase", program_name);
+fn show_usage(program_name: &str) -> ! {
+    eprintln!(
+        "usage: {} [compressed|uncompressed] passphrase",
+        program_name
+    );
     process::exit(1);
 }
 
@@ -67,9 +70,9 @@ fn main() {
     }
     let compressed;
     match args[1].as_ref() {
-        "compressed" => { compressed = true},
-        "uncompressed" => { compressed = false},
-        _ => show_usage(&args[0])
+        "compressed" => compressed = true,
+        "uncompressed" => compressed = false,
+        _ => show_usage(&args[0]),
     }
     let passphrase = &args[2];
     let (secret_key, public_key) = create_key_pair(passphrase.as_bytes());
@@ -79,26 +82,40 @@ fn main() {
     println!("Private Key (Wallet Import Format): {}", wif);
 }
 
-#[test]
-fn test_uncompressed() {
-    let compressed = false;
-    let passphrase = "123456789012345";
-    let (secret_key, public_key) = create_key_pair(passphrase.as_bytes());
-    let bitcoin_address = calculate_bitcoin_address(public_key, compressed);
-    println!("Bitcoin Address: {}", bitcoin_address);
-    assert_eq!(bitcoin_address, "1LACc1FBbR5o3qxhkY1nRZGkMeWJ9VZJim");
-    let wif = calculate_wallet_import_format(secret_key, compressed);
-    assert_eq!(wif, "5KY2ffqAZPrnvoMAJr2sTDKpBDdF3bpqr2NgKizDMJ8n23Uq5mc");
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn test_compressed() {
-    let compressed = true;
-    let passphrase = "123456789012345";
-    let (secret_key, public_key) = create_key_pair(passphrase.as_bytes());
-    let bitcoin_address = calculate_bitcoin_address(public_key, compressed);
-    println!("Bitcoin Address: {}", bitcoin_address);
-    assert_eq!(bitcoin_address, "1FCGr3TqJ59vjRsZtSLvaTSANeGz81gc7Y");
-    let wif = calculate_wallet_import_format(secret_key, compressed);
-    assert_eq!(wif, "L4oxMgPbBytmiTZz5mRFghQ3E6ixzUiAbP4gZeKXWadKhXyLGoVw");
+    fn test(
+        passphrase: &str,
+        compressed: bool,
+        expected_bitcoin_address: &str,
+        expected_wif: &str,
+    ) {
+        let (secret_key, public_key) = create_key_pair(passphrase.as_bytes());
+        let bitcoin_address = calculate_bitcoin_address(public_key, compressed);
+        assert_eq!(bitcoin_address, expected_bitcoin_address);
+        let wif = calculate_wallet_import_format(secret_key, compressed);
+        assert_eq!(wif, expected_wif);
+    }
+
+    #[test]
+    fn test_uncompressed() {
+        test(
+            "123456789012345",
+            false,
+            "1LACc1FBbR5o3qxhkY1nRZGkMeWJ9VZJim",
+            "5KY2ffqAZPrnvoMAJr2sTDKpBDdF3bpqr2NgKizDMJ8n23Uq5mc",
+        );
+    }
+
+    #[test]
+    fn test_compressed() {
+        test(
+            "123456789012345",
+            true,
+            "1FCGr3TqJ59vjRsZtSLvaTSANeGz81gc7Y",
+            "L4oxMgPbBytmiTZz5mRFghQ3E6ixzUiAbP4gZeKXWadKhXyLGoVw",
+        );
+    }
 }
