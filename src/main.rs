@@ -22,7 +22,17 @@ fn ripemd160(data: &[u8]) -> [u8; 20] {
 
 fn create_key_pair(seed: &[u8]) -> (SecretKey, PublicKey) {
     let seed_bytes = sha256_hash(seed);
-    let secret_key = SecretKey::parse(&seed_bytes).unwrap();
+
+    // uncomment for testing the very very unlikely error
+    // let seed_bytes=[0;32];
+
+    let secret_key = match SecretKey::parse(&seed_bytes) {
+        Ok(key) => key,
+        Err(_) => {
+            println!("Can't create secret key. Congratulation, you probably found an reverse function for SHA256!");
+            process::exit(1);
+        }
+    };
     let public_key = PublicKey::from_secret_key(&secret_key);
     (secret_key, public_key)
 }
