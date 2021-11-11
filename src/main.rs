@@ -1,23 +1,17 @@
 use base58::*;
 use libsecp256k1::*;
+use ripemd160::Digest;
 use ripemd160::Ripemd160;
-use sha2::{Digest, Sha256};
+//use sha2::Digest;
+use sha2::Sha256;
 use std::{env, process};
 
-macro_rules! hash {
-    ($Hasher:ty, $data:expr) => {{
-        let mut hasher = <$Hasher>::new();
-        hasher.update($data);
-        hasher.finalize().as_slice().try_into().unwrap()
-    }};
-}
-
 fn sha256_hash(data: &[u8]) -> [u8; 32] {
-    hash!(Sha256, data)
+    Sha256::digest(data).as_slice().try_into().unwrap()
 }
 
 fn ripemd160(data: &[u8]) -> [u8; 20] {
-    hash!(Ripemd160, data)
+    Ripemd160::digest(data).as_slice().try_into().unwrap()
 }
 
 fn create_key_pair(seed: &[u8]) -> (SecretKey, PublicKey) {
