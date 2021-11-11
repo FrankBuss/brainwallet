@@ -1,26 +1,18 @@
 use base58::*;
+use digest::Digest;
 use libsecp256k1::*;
-use ripemd160::Digest;
 use ripemd160::Ripemd160;
-//use sha2::Digest;
 use sha2::Sha256;
+
 use std::{env, process};
 
-fn sha256_hash(data: &[u8]) -> [u8; 32] {
-    Sha256::digest(data).as_slice().try_into().unwrap()
-}
-
-fn ripemd160(data: &[u8]) -> [u8; 20] {
-    Ripemd160::digest(data).as_slice().try_into().unwrap()
-}
-
 fn create_key_pair(seed: &[u8]) -> (SecretKey, PublicKey) {
-    let seed_bytes = sha256_hash(seed);
+    let seed_bytes = Sha256::digest(seed);
 
     // uncomment for testing the very very unlikely error
     // let seed_bytes=[0;32];
 
-    let secret_key = match SecretKey::parse(&seed_bytes) {
+    let secret_key = match SecretKey::parse(&seed_bytes.into()) {
         Ok(key) => key,
         Err(_) => {
             println!("Can't create secret key. Congratulation, you probably found a reverse function for SHA256!");
@@ -37,12 +29,12 @@ fn calculate_bitcoin_address(public_key: PublicKey, compressed: bool) -> String 
     } else {
         public_key.serialize().to_vec()
     };
-    let hashed = ripemd160(&sha256_hash(&public_key_serialized));
+    let hashed = Ripemd160::digest(&Sha256::digest(&public_key_serialized));
     const PUBLIC_KEY_MAIN_NETWORK: u8 = 0x00; // 0x6f for testnet
     let mut bytes: Vec<u8> = Vec::new();
     bytes.push(PUBLIC_KEY_MAIN_NETWORK);
     bytes.extend(hashed);
-    let double_hash = sha256_hash(&sha256_hash(&bytes).to_vec());
+    let double_hash = Sha256::digest(&Sha256::digest(&bytes).to_vec());
     let checksum = &double_hash[0..4];
     bytes.extend(checksum);
     bytes.to_base58()
@@ -57,7 +49,7 @@ fn calculate_wallet_import_format(secret_key: SecretKey, compressed: bool) -> St
     if compressed {
         bytes.push(1);
     }
-    let double_hash = sha256_hash(&sha256_hash(&bytes).to_vec());
+    let double_hash = Sha256::digest(&Sha256::digest(&bytes).to_vec());
     let checksum = &double_hash[0..4];
     bytes.extend(checksum);
     bytes.to_base58()
